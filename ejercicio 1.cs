@@ -1,0 +1,91 @@
+﻿using System;
+using System.Numerics;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        Console.Write("Enter n (number of Fibonacci terms): ");
+        if (!int.TryParse(Console.ReadLine(), out int n) || n < 1)
+        {
+            Console.WriteLine("Please enter a positive integer.");
+            return;
+        }
+
+        PrintPrimeFibonacci(n);
+    }
+
+    // Prints only the Fibonacci numbers that are prime, up to the n-th term
+    static void PrintPrimeFibonacci(int n)
+    {
+        BigInteger a = 0;
+        BigInteger b = 1;
+
+        for (int i = 1; i <= n; i++)
+        {
+            BigInteger fib = a;
+            // advance Fibonacci: (a, b) -> (b, a + b)
+            BigInteger next = a + b;
+            a = b;
+            b = next;
+
+            if (fib >= 2 && IsProbablyPrime(fib))
+            {
+                Console.WriteLine(fib);
+            }
+        }
+    }
+
+    // Miller–Rabin primality test (deterministic for 64-bit using chosen bases,
+    // probabilistic for larger BigIntegers but with low error rate for typical bases)
+    static bool IsProbablyPrime(BigInteger value)
+    {
+        if (value < 2) return false;
+        if (value == 2 || value == 3) return true;
+        if (value % 2 == 0) return false;
+
+        // small prime trial division to quickly eliminate small factors
+        int[] smallPrimes = { 3, 5, 7, 11, 13, 17, 19, 23, 29, 31 };
+        foreach (int p in smallPrimes)
+        {
+            if (value == p) return true;
+            if (value % p == 0) return false;
+        }
+
+        // Write value-1 as d * 2^s
+        BigInteger d = value - 1;
+        int s = 0;
+        while (d % 2 == 0)
+        {
+            d /= 2;
+            s++;
+        }
+
+        // Bases chosen: deterministic for 64-bit integers and good probabilistic coverage otherwise
+        long[] bases = { 2, 325, 9375, 28178, 450775, 9780504, 1795265022 };
+
+        foreach (long aLong in bases)
+        {
+            BigInteger a = aLong;
+            if (a % value == 0) continue;
+
+            BigInteger x = BigInteger.ModPow(a, d, value);
+            if (x == 1 || x == value - 1) continue;
+
+            bool composite = true;
+            for (int r = 1; r < s; r++)
+            {
+                x = BigInteger.ModPow(x, 2, value);
+                if (x == value - 1)
+                {
+                    composite = false;
+                    break;
+                }
+            }
+
+            if (composite) return false;
+        }
+
+        return true;
+    }
+}
